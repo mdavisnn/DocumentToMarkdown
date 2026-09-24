@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "document-to-markdown"
+version = "0.1.0"
+description = "A small developer CLI for converting folders of documents with MarkItDown."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "markitdown[all]>=0.1,<0.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+]
+
+[project.scripts]
+documents-to-markdown = "convert_folder:main"
+
+[tool.setuptools]
+py-modules = ["convert_folder"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

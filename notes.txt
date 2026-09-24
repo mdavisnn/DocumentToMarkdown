@@ -1,0 +1,5 @@
+
+
+cd "D:\Data Lab\DocumentToMarkdown"
+python .\convert_folder.py "D:\Data Lab\DocumentLibrary"
+
