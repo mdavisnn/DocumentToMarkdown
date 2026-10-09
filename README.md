@@ -8,6 +8,10 @@ The generated files are written to a `markdown_output` folder by default.
 The input folder structure is preserved, and existing Markdown files are
 skipped unless `--overwrite` is supplied.
 
+Each source folder also receives a `conversion_log.csv` file. Successful
+conversions are appended with the source file's relative name, original format,
+and conversion date. Existing log entries are preserved on later runs.
+
 ## Supported files
 
 - PDF
@@ -39,7 +43,7 @@ script immediately without installing the project.
 ## Usage
 
 ```powershell
-python .\convert_folder.py "C:\path\to\documents"
+python .\convert_folder.py "D:\Data Lab\DocumentLibrary"
 ```
 
 After installing the project, the shorter command is also available:

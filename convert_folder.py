@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import csv
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from typing import Protocol
 
@@ -25,6 +27,9 @@ SUPPORTED_EXTENSIONS = {
     ".xlsx",
     ".xml",
 }
+
+CONVERSION_LOG_NAME = "conversion_log.csv"
+CONVERSION_LOG_FIELDS = ("file_name", "original_format", "conversion_date")
 
 
 class Converter(Protocol):
@@ -49,13 +54,46 @@ def is_within(path: Path, directory: Path) -> bool:
 
 def find_documents(source: Path, output: Path) -> list[Path]:
     """Find supported files recursively, excluding the generated output."""
+    conversion_log = (source / CONVERSION_LOG_NAME).resolve()
     return sorted(
         path
         for path in source.rglob("*")
         if path.is_file()
         and path.suffix.lower() in SUPPORTED_EXTENSIONS
         and not is_within(path.resolve(), output)
+        and path.resolve() != conversion_log
     )
+
+
+def append_conversion_log(source: Path, document: Path) -> None:
+    """Append a successful conversion to the source folder's CSV log."""
+    log_path = source / CONVERSION_LOG_NAME
+    write_header = not log_path.exists() or log_path.stat().st_size == 0
+
+    with log_path.open("a", encoding="utf-8", newline="") as log_file:
+        writer = csv.DictWriter(log_file, fieldnames=CONVERSION_LOG_FIELDS)
+        if write_header:
+            writer.writeheader()
+        writer.writerow(
+            {
+                "file_name": document.relative_to(source).as_posix(),
+                "original_format": document.suffix.lstrip(".").lower(),
+                "conversion_date": date.today().isoformat(),
+            }
+        )
+
+
+def ensure_conversion_log(source: Path) -> None:
+    """Create an empty conversion log with its header when none exists."""
+    log_path = source / CONVERSION_LOG_NAME
+    if log_path.exists() and log_path.stat().st_size > 0:
+        return
+
+    with log_path.open("w", encoding="utf-8", newline="") as log_file:
+        csv.DictWriter(
+            log_file,
+            fieldnames=CONVERSION_LOG_FIELDS,
+        ).writeheader()
 
 
 def convert_folder(
@@ -77,6 +115,7 @@ def convert_folder(
     )
     converter = converter or MarkItDown()
     summary = ConversionSummary()
+    ensure_conversion_log(source)
 
     for document in find_documents(source, output):
         relative_path = document.relative_to(source)
@@ -91,6 +130,7 @@ def convert_folder(
             result = converter.convert_local(document)
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_text(result.markdown, encoding="utf-8")
+            append_conversion_log(source, document)
         except Exception as exc:
             print(f"[failed]    {relative_path}: {exc}")
             summary.failed += 1
